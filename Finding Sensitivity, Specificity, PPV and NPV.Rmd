@@ -1,0 +1,142 @@
+---
+title: "Finding Sensitivity, Specificity, PPV, and NPV in Cholecystitis Testing Dataset"
+author: "Mohammed Al-Shalchy"
+date: "10/13/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cholecystitis
+Cholecystitis is an inflammation in a person's gallbladder, which is a small, digestive organ beneath the liver. This inflammation can occur for a multitude of reasons, from a tumor growing in the gallbladder to an infection like AIDS. However, the number one reason that Cholecystitis occurs is because of gallstones build-up up in the gallbladder, which block the tube leading out of the gallbladder. Since gallstones are the most common way that Cholecystitis occurs in the human body, the method of screen testing for Cholecystitis is testing for gallstones presence in the gallbladder. This project will be running and analyzing the effectiveness of the Cholecystitis screen test pertaining to gallstones using the four following methods for testing effectiveness of an epidemiological test: sensitivity, specificity, positive predictive value (PPV), and negative predictive value(NPV)
+
+## Importing Packages
+The following four packages will be loaded for the purposes of loading the data, organizing the data, and analyzing the accuracy of the Cholecystitis test from the data: the `tidyverse`, the `knitr` , the `kableExtra`,and the `epiR` packages:
+```{r}
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(epiR)
+```
+
+## Importing The Data
+The function `read.csv()` will be used to import the Cholecystitis screen test data:
+```{r}
+test_data <- read.csv("~/R projects/GB data - dummy coding.csv")
+```
+
+## Structure and View of the Data
+Before viewing the data, the structure of the data has to be understood. To have an idea of the structure of the data, the `dim()` function will be utilized to find how many rows and columns are present in the test data:
+```{r}
+dim(test_data)
+```
+`dim()` showcases that there are 456 observations (rows) accompanied by 21 variables (columns). The names of the 21 variables will be required to know which specific variables to run for epidemiological testing, and to do that, the `names()` function will be utilized to give the name of each variable present in the test data:
+```{r}
+names(test_data)
+```
+Finally, to get a good idea of what the data set looks like, it will be loaded in a table using the `kableExtra` package alongside the customization that comes with it:
+```{r}
+test_data %>%
+  kbl() %>%
+   kable_classic("striped", full_width = F, html_font = "Cambria")%>%
+  scroll_box(width = "100%", height = "200px")
+```
+
+## Filtering Down to Necessary Data for Testing
+As the data is present, there are 456 observations alongside 21 variables. 21 variables gives unnecessary extra information to analyze. For the epidemiological testing and analysis that is required for this project, only two categorical variables are required: gallstones, which are the presence or absence of gallstones in the gallbladder, and Final_Dx, which is the presence or absence of the inflammation that results in Cholecystitis in the gallbladder. To only examine these two variables, the `select()` function would be utilized, separating the gallstones and Final_Dx from the rest of the unecessary data:
+```{r}
+gall_and_infl_test <- select(test_data, gallstones, Final_Dx)
+```
+Now that the two categorical variables required for testing are selected, the next step is to find the necessary observations to do epidemiological testing. To do that, the `table()` function (while including any potential empty observations), will be utilized to figure out how many categorical observations there are using 
+```{r}
+table(gall_and_infl_test$gallstones, useNA = "always")
+```
+For the variable gallstones, there are two categorical observations: 0 for no gallstones present and 1 for gallstones present.
+```{r}
+table(gall_and_infl_test$Final_Dx, useNA = "always")
+```
+For the variable Final_Dx, which is the inflammation detected by the test, there are four categorical observations: 0 which represents no inflammation present, 1 which represents inflammation present, 2 which represents in between, and NA which represents not available.  
+
+For testing the effectiveness of the Cholecystitis screening test, both observations for gallstones and **two** observations for Final_Dx: 0 for no inflammation present and 1 for inflammation present, will be selected and utilized. Here's what the data set looks like now after filtering for the required observations for testing:
+```{r}
+true_gall_and_infl_test <- filter(gall_and_infl_test, Final_Dx == 1 | Final_Dx == 0)
+true_gall_and_infl_test %>%
+  kbl() %>%
+   kable_classic("striped", html_font = "Cambria", position = "center")%>%
+  scroll_box(width = "100%", height = "200px")
+```
+Now that the necessary observations for running epidemiological testing in the two categorical variables have been acquired, the next step is to isolate the four possible outcomes of the data for testing the effectiveness of the Cholecystitis screen test. 
+
+## Formatting The Testing Table
+To be able to perform the four epidemiological tests: sensitivity, specificity, PPV, and NPV, a certain format of the conditions is required so that when the function `epi.tests()` is used, an accurate result will be acquired. To visualize the format for the epidemiological tests, a picture from the **Penn State Elbery College of Science: Epidemiological Research Methods** will be provided:  
+
+```{r, echo = FALSE}
+knitr::include_graphics("https://online.stat.psu.edu/onlinecourses/sites/stat507/files/lesson06/table_01.png")
+```
+
+There are four possible outcomes all inserted into a table:  
+A for True Positive; in the data: 1 gallstone present and  1 Final_Dx (inflammation) present  
+B for False Positive; in the data: 1 gallstone present and 0 Final_Dx (inflammation) present  
+C for False Negative; in the data: 0 gallstone present and 1 Final_Dx (inflammation) present  
+D for True Negative; in the data: 0 gallstone present and 0 Final_Dx (inflammation) present  
+  
+To set our table up in the format of the test, it is required to extract the four possible outcomes (results) of the Cholecystitis screen test data and put them in a table. To do that, the `table()` function will be used:
+```{r}
+Cholecystitis_results <- table(true_gall_and_infl_test$gallstones, true_gall_and_infl_test$Final_Dx)
+Cholecystitis_results %>%
+  kbl() %>%
+   kable_classic(full_width = F, html_font = "Cambria", position = "left", font_size = 22)
+```
+Comparing this table to the formatting provided by the Penn State Elbery College of Science, there's a clear and glaring problem: True negatives (0-0) and true positives (1-1) alongside false positives(1-0) and false negatives(0-1) have swapped places. This will cause inaccuracies in running the epidemiological tests for determining the accuracy of the Cholecystitis test.
+   
+To fix this error, a simple table formatting fix would be required, where normally a table in R is indented from [1:N], it would be indented instead to [N:1], or in this case, from [1:2] to [2:1]:
+```{r}
+Cholecystitis_results <- table(true_gall_and_infl_test$gallstones, true_gall_and_infl_test$Final_Dx)[2:1,2:1]
+Cholecystitis_results %>%
+  kbl() %>%
+   kable_classic(full_width = F, html_font = "Cambria", position = "left", font_size = 22)
+```
+Now that the Cholecystitis screen test outcomes are formatted correctly, the epidemiological testing and analysis can begin. 
+
+## Running The Test: Results
+The function `epi.tests()` from the `epi.R` package to produce the sensitivity, specificity, PPV, and NPV of the Cholecystitis test:
+```{r}
+epi.tests(Cholecystitis_results)
+```
+
+## Analyzing The Results
+  
+### Sensitivity
+Sensitivity of a medical screen test is the measurement of how often a test *correctly* generates a positive result for patients who *have* the *condition* they're being tested for. In the context of Cholecystitis, the sensitivity of the Cholecystitis screen test measures how often the test will correctly generate a *true positive* result for patients who have Cholecystitis. The equation to find the sensitivity is as follows: 
+
+##### (True Positives / (True Positives + False negatives)) * 100
+
+In the testing, the sensitivity of the Cholecystitis screen test was 91%, meaning that of the patients who did have Cholecystitis, 91% got a true positive result while 9% got a false negative result, which is negative result (no gallstones) while still having Cholecystitis. 91% sensitivity means that the test is good at determining whether a patient who has Cholecystitis is told they they have Cholecystitis by finding the presence of gallstones in the gallbladder. If the test wasn't good at determining Cholecystitis by presence of gallstones, then another medical screen test would be required to replace this particular Cholecystitis screen test, as gallstone presence wouldn't be a good indicator to telling a patient whether they have Cholecystitis.  
+
+### Specificity
+Specificity of a medical screen test is the measurement of the test's ability to *correctly* generate a negative result for patients who don't have the condition that they're being tested for.  In the context of Cholecystitis, the specificity of the Cholecystitis screen test measures how often the test will correctly generate a *true negative* result for patients who don't have Cholecystitis. The equation to find the specificity is as follows:  
+
+##### (True Negatives / (True Negatives + False Positives)) * 100  
+  
+As a general rule, sensitivity and specificity exist on a balance; when sensitivity is high, it generally means that specificity is low, and it is no different for the specificity of the Cholecystitis screen test, which is 78%. 78% specificity means that 78% of patients who didn't have Chilecystitis were told that they didn't have Cholecystitis, while 22% percent of patients who didn't have Cholecystitis were told that they did have Cholecystitis. This is due to the fact 22% of patients in the data set tested positive for gallstones but didn't actually have Cholecystitis. 78% specificty means that the test is okay at determining whether a patient who doesn't have Cholecystitis is actually told that they don't have Cholecystitis. 
+
+### Positive Predictive Value (PPV)
+The Positive Predictive Value (PPV) is the percent chance that a patient actually has the disease that they've tested positive for in a screen test in a given population. In the context of Cholecystitis, It is the percent chance that a patient who tests positive for the screen test of gallstones actually has Cholecystitis. PPV is calculated by the following equation:  
+
+##### (True Positive / (True Positive + False Positive)) * 100
+  
+In the epidemiological testing, the PPV came out to 40%. While it seems low, this is generally an ok PPV compared to other PPV for different tests like prostate cancer and breast cancer, who respectively, have 30% and 4.3%-52.4%. The number is generally low due to the fact that when epidemiological screening tests are being designed, they're designed with a high-risk population in mind, meaning that when the population being tested is at low-risk of Cholecystitis, even if they have gallstones, they're less likely to have Cholecystitis.
+
+### Negative Predictive Value (NPV)
+The Negative Predictive Value (NPV) is the percent chance that a patinet actually doesn't has the disease that they've tested negative for in a screen test in a given population. In the context of Cholecystitis, It is the percent chance that a patient who tests negative for the screen test of gallstones doesn't have Cholecystitis. PPV is calculated by the following equation:   
+
+##### (True Negative / (True Negative + False Negative)) * 100
+  
+In the epidemiological testing, the NPV came out to 98%. This is incredibly high and basically means that if a patient tests negative for gallstones, they usually don't have Cholecystitis.  
+
+## Is the Cholecystitis Screening Test Effective?
+A screening test's true purpose is to be able to eliminate the possibility of a certain condition being present. The test should also come positive for patients with the actual condition that they're being screen tested for, because giving false negatives for patients who have a certain medical condition is catastrophic. With that said, the Cholecystitis screening test that screens gallstones presence is a good test at determining whether a medical patient has cholecystitis or not. If the patient tests negative for gallstones, there's a 98% chance that they don't have Cholecystitis. If the patient tests positive for gallstones, there's a 40% chance that they have Cholecystitis mainly due to the fact that there's a 22% a patient has received false positive, where they have gallstones but not Cholecystitis. This is where additional testing is required to determine whether the patient has Cholecystitis. Finally, when a patient actually has Cholecystitis, the condition they're being screen tested for, there's a 91% chance that they'll be accurately told that they have Cholecystitis due to the presence of gallstones, which means that this test is effective at finding people who have Cholecystitis. 
+  
+Putting everything together, the Cholecystitis screen test is great at eliminating the possibility of Cholecystitis being present if patients don't have gallstones, and this test is great at telling patients who have Cholecystitis that they actually have Cholecystitis due to the presence of gallstones in the gallbladder.
